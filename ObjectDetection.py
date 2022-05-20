@@ -30,21 +30,6 @@ def display_image(image):
   plt.imshow(image)
   pylab.show()
 
-def download_and_resize_image(url, new_width=256, new_height=256,
-                              display=False):
-  _, filename = tempfile.mkstemp(suffix=".jpg")
-  response = urlopen(url)
-  image_data = response.read()
-  image_data = BytesIO(image_data)
-  pil_image = Image.open(image_data)
-  pil_image = ImageOps.fit(pil_image, (new_width, new_height), Image.ANTIALIAS)
-  pil_image_rgb = pil_image.convert("RGB")
-  pil_image_rgb.save(filename, format="JPEG", quality=90)
-  print("Image downloaded to %s." % filename)
-  if display:
-    display_image(pil_image)
-  return filename
-
 def get_and_resize_image(dr, new_width=256, new_height=256, display=False):
   _, filename = tempfile.mkstemp(suffix=".jpg")
   pil_image = Image.open(dr)
@@ -56,24 +41,12 @@ def get_and_resize_image(dr, new_width=256, new_height=256, display=False):
     display_image(pil_image)
   return filename
 
-def draw_bounding_box_on_image(image,
-                               ymin,
-                               xmin,
-                               ymax,
-                               xmax,
-                               color,
-                               font,
-                               thickness=4,
-                               display_str_list=()):
+def draw_bounding_box_on_image(image, ymin, xmin, ymax, xmax, color, font, thickness=4, display_str_list=()):
   """Adds a bounding box to an image."""
   draw = ImageDraw.Draw(image)
   im_width, im_height = image.size
-  (left, right, top, bottom) = (xmin * im_width, xmax * im_width,
-                                ymin * im_height, ymax * im_height)
-  draw.line([(left, top), (left, bottom), (right, bottom), (right, top),
-             (left, top)],
-            width=thickness,
-            fill=color)
+  (left, right, top, bottom) = (xmin * im_width, xmax * im_width, ymin * im_height, ymax * im_height)
+  draw.line([(left, top), (left, bottom), (right, bottom), (right, top),(left, top)],width=thickness,fill=color)
 
   # If the total height of the display strings added to the top of the bounding
   # box exceeds the top of the image, stack the strings below the bounding box
@@ -90,13 +63,8 @@ def draw_bounding_box_on_image(image,
   for display_str in display_str_list[::-1]:
     text_width, text_height = font.getsize(display_str)
     margin = np.ceil(0.05 * text_height)
-    draw.rectangle([(left, text_bottom - text_height - 2 * margin),
-                    (left + text_width, text_bottom)],
-                   fill=color)
-    draw.text((left + margin, text_bottom - text_height - margin),
-              display_str,
-              fill="black",
-              font=font)
+    draw.rectangle([(left, text_bottom - text_height - 2 * margin),(left + text_width, text_bottom)],fill=color)
+    draw.text((left + margin, text_bottom - text_height - margin),display_str,fill="black",font=font)
     text_bottom -= text_height - 2 * margin
 
 def draw_boxes(image, boxes, class_names, scores, max_boxes=10, min_score=0.1):
@@ -113,19 +81,10 @@ def draw_boxes(image, boxes, class_names, scores, max_boxes=10, min_score=0.1):
   for i in range(min(boxes.shape[0], max_boxes)):
     if scores[i] >= min_score:
       ymin, xmin, ymax, xmax = tuple(boxes[i])
-      display_str = "{}: {}%".format(class_names[i].decode("ascii"),
-                                     int(100 * scores[i]))
+      display_str = "{}: {}%".format(str(class_names[i]), int(100 * scores[i]))
       color = colors[hash(class_names[i]) % len(colors)]
       image_pil = Image.fromarray(np.uint8(image)).convert("RGB")
-      draw_bounding_box_on_image(
-          image_pil,
-          ymin,
-          xmin,
-          ymax,
-          xmax,
-          color,
-          font,
-          display_str_list=[display_str])
+      draw_bounding_box_on_image(image_pil,ymin,xmin,ymax,xmax,color,font, display_str_list=[display_str])
       np.copyto(image, np.array(image_pil))
   return image
 
@@ -137,22 +96,20 @@ def load_img(path):
 def run_detector(detector, path):
   img = load_img(path)
 
-  converted_img  = tf.image.convert_image_dtype(img, tf.float32)[tf.newaxis, ...]
+  converted_img  = tf.image.convert_image_dtype(img, tf.uint8)[tf.newaxis, ...]
   start_time = time.time()
   result = detector(converted_img)
   end_time = time.time()
 
   result = {key:value.numpy() for key,value in result.items()}
 
-  print("Found %d objects." % len(result["detection_scores"]))
+  print("Found %d objects." % len(result["num_detections"]))
   print("Inference time: ", end_time-start_time)
 
-  image_with_boxes = draw_boxes(
-      img.numpy(), result["detection_boxes"],
-      result["detection_class_entities"], result["detection_scores"], 100)
+  image_with_boxes = draw_boxes(img.numpy(), result["detection_boxes"][0],
+      result["detection_classes"][0], result["detection_scores"][0], 100, 0.1)
 
   display_image(image_with_boxes)
-
 
 
 # Print Tensorflow version
@@ -165,10 +122,8 @@ print("The following GPU devices are available: %s" % tf.test.gpu_device_name())
 #image_url = "https://upload.wikimedia.org/wikipedia/commons/6/60/Naxos_Taverna.jpg"  #@param
 #downloaded_image_path = download_and_resize_image(image_url, 1280, 856, True)
 
-downloaded_image_path = get_and_resize_image(".\Imagenes\IMG1I.jpg" , 1280, 856, True)
+downloaded_image_path = get_and_resize_image(".\Imagenes\IMG2I.jpg" , 1280, 856, True)
 
-module_handle = "https://tfhub.dev/google/faster_rcnn/openimages_v4/inception_resnet_v2/1" #@param ["https://tfhub.dev/google/openimages_v4/ssd/mobilenet_v2/1", "https://tfhub.dev/google/faster_rcnn/openimages_v4/inception_resnet_v2/1"]
-
-detector = hub.load(module_handle).signatures['default']
-
+module_handle = "https://tfhub.dev/tensorflow/faster_rcnn/inception_resnet_v2_640x640/1"
+detector = hub.load(module_handle)
 run_detector(detector, downloaded_image_path)
