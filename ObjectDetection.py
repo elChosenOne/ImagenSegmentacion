@@ -24,6 +24,9 @@ import time
 
 import pylab
 
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import numpy as np
+
 def display_image(image):
   fig = plt.figure(figsize=(20, 15))
   plt.grid(False)
@@ -112,18 +115,41 @@ def run_detector(detector, path):
   display_image(image_with_boxes)
 
 
-# Print Tensorflow version
-print(tf.__version__)
+datagen = ImageDataGenerator( rescale=1. / 255,
+                              rotation_range = 30,
+                              width_shift_range = 0.25,
+                              height_shift_range = 0.25,
+                              shear_range = 15,
+                              zoom_range = [0.5, 1.5],
+                              validation_split = 0.2)
 
-# Check available GPU devices.
-print("The following GPU devices are available: %s" % tf.test.gpu_device_name())
+data_gen_entrenamiento = datagen.flow_from_directory('.\dataset', target_size=(640,640),
+                                                     batch_size=32, shuffle=True, subset='training')
+data_gen_pruebas = datagen.flow_from_directory('.\dataset', target_size=(640,640),
+                                                     batch_size=32, shuffle=True, subset='validation')
 
-## By Heiko Gorski, Source: https://commons.wikimedia.org/wiki/File:Naxos_Taverna.jpg
-#image_url = "https://upload.wikimedia.org/wikipedia/commons/6/60/Naxos_Taverna.jpg"  #@param
-#downloaded_image_path = download_and_resize_image(image_url, 1280, 856, True)
+for imagen, etiqueta in data_gen_entrenamiento:
+  for i in range(10):
+    plt.subplot(2, 5, i+1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.imshow(imagen[i])
+  break
+plt.show()
 
 downloaded_image_path = get_and_resize_image(".\Imagenes\IMG2I.jpg" , 1280, 856, True)
 
-module_handle = "https://tfhub.dev/tensorflow/faster_rcnn/inception_resnet_v2_640x640/1"
+module_handle = "https://tfhub.dev/google/imagenet/resnet_v1_50/feature_vector/5"
+'''
 detector = hub.load(module_handle)
-run_detector(detector, downloaded_image_path)
+run_detector(detector, downloaded_image_path)'''
+
+
+m = tf.keras.Sequential([
+    hub.KerasLayer("https://tfhub.dev/google/imagenet/resnet_v1_50/feature_vector/5",
+                   trainable=False),
+    tf.keras.layers.Dense(8, activation='softmax')
+])
+m.build([None, 224, 224, 3])
+
+m.summary()
