@@ -94,7 +94,7 @@ module_handle = "https://tfhub.dev/google/imagenet/resnet_v1_50/feature_vector/5
 m = tf.keras.Sequential([
     hub.KerasLayer(module_handle,
                    trainable=False),
-    tf.keras.layers.Dense(8, activation='softmax')
+    tf.keras.layers.Dense(6, activation='softmax')
 ])
 m.build([None, 224, 224, 3])
 
@@ -114,7 +114,8 @@ m.load_weights(checkpoint_path)
 
 #path = get_and_resize_image(".\Imagenes\\5(3).jpg" , 224, 224, True)
 
-for i in range(8):
+
+for i in range(7):
     img = Image.open(".\Imagenes\\"+str(i+1)+".jpg")
     img = np.array(img).astype(float)/255
 
@@ -132,8 +133,9 @@ for i in range(8):
 #                        data_gen_pruebas[1],
 #                        verbose=2)
 #print("Restored model, accuracy: {:5.2f}%".format(100 * acc))
-'''
+
 # Create a callback that saves the model's weights
+'''
 cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                  save_weights_only=True,
                                                  verbose=1)
