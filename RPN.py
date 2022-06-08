@@ -9,6 +9,7 @@ import argparse
 import cv2
 import time
 from PIL import Image
+import FeatureVector as FV
 
 def selective_search(image, method="fast"):
 	# initialize OpenCV's selective search implementation and set the
@@ -31,25 +32,6 @@ def selective_search(image, method="fast"):
     print("Tiempo = ", t2-t1)
 	# return the region proposal bounding boxes
     return rects
-    
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,
-	help="path to the input image")
-ap.add_argument("-m", "--method", type=str, default="fast",
-	choices=["fast", "quality"],
-	help="selective search method")
-ap.add_argument("-c", "--conf", type=float, default=0.9,
-	help="minimum probability to consider a classification/detection")
-ap.add_argument("-f", "--filter", type=str, default=None,
-	help="comma separated list of ImageNet labels to filter on")
-args = vars(ap.parse_args())
-
-# grab the label filters command line argument
-labelFilters = args["filter"]
-# if the label filter is not empty, break it into a list
-if labelFilters is not None:
-	labelFilters = labelFilters.lower().split(",")
     
 # load ResNet from disk (with weights pre-trained on ImageNet)
 print("[INFO] loading ResNet...")
@@ -80,11 +62,9 @@ image = cv2.resize(image, (1024, H))
 print("H = ", H, " W = ", W)
 
 # run selective search on the input image
-print("[INFO] performing selective search with '{}' method...".format(
-	args["method"]))
-rects = selective_search(image, method=args["method"])
+print("[INFO] performing selective search with fast method...")
+rects = selective_search(image, method="fast")
 print("[INFO] {} regions found by selective search".format(len(rects)))
-print(rects)
 # initialize the list of region proposals that we'll be classifying
 # along with their associated bounding boxes
 proposals = []
@@ -110,72 +90,7 @@ for (x, y, w, h) in rects:
 	# update our proposals and bounding boxes lists
     proposals.append(roi)
     boxes.append((x, y, w, h))
-    
-# convert the proposals list into NumPy array and show its dimensions
-proposals = np.array(proposals)
-print("[INFO] proposal shape: {}".format(proposals.shape))
-# classify each of the proposal ROIs using ResNet and then decode the
-# predictions
-print("[INFO] classifying proposals...")
-preds = model.predict(proposals)
-preds = imagenet_utils.decode_predictions(preds, top=1)
-# initialize a dictionary which maps class labels (keys) to any
-# bounding box associated with that label (values)
-labels = {}
 
-# loop over the predictions
-for (i, p) in enumerate(preds):
-	# grab the prediction information for the current region proposal
-    (imagenetID, label, prob) = p[0]
-	# only if the label filters are not empty *and* the label does not
-	# exist in the list, then ignore it
-    if labelFilters is not None and label not in labelFilters:
-        continue
-	# filter out weak detections by ensuring the predicted probability
-	# is greater than the minimum probability
-    if prob >= args["conf"]:
-		# grab the bounding box associated with the prediction and
-		# convert the coordinates
-        (x, y, w, h) = boxes[i]
-        box = (x, y, x + w, y + h)
-		# grab the list of predictions for the label and add the
-		# bounding box + probability to the list
-        L = labels.get(label, [])
-        L.append((box, prob))
-        labels[label] = L
+print("[INFO] {} filtred regions found by selective search".format(len(boxes)))
 
-# loop over the labels for each of detected objects in the image
-print (len(labels.keys()))
-for label in labels.keys():
-	# clone the original image so that we can draw on it
-    print("[INFO] showing results for '{}'".format(label))
-    clone = image.copy()
-	# loop over all bounding boxes for the current label
-    for (box, prob) in labels[label]:
-		# draw the bounding box on the image
-        (startX, startY, endX, endY) = box
-        cv2.rectangle(clone, (startX, startY), (endX, endY),
-			(0, 255, 0), 2)
-	# show the results *before* applying non-maxima suppression, then
-	# clone the image again so we can display the results *after*
-	# applying non-maxima suppression
-    cv2.imshow("Before", clone)
-    clone = image.copy()
-    
-    	# extract the bounding boxes and associated prediction
-	# probabilities, then apply non-maxima suppression
-    boxes = np.array([p[0] for p in labels[label]])
-    proba = np.array([p[1] for p in labels[label]])
-    boxes = non_max_suppression(boxes, proba)
-	# loop over all bounding boxes that were kept after applying
-	# non-maxima suppression
-    for (startX, startY, endX, endY) in boxes:
-		# draw the bounding box and label on the image
-        cv2.rectangle(clone, (startX, startY), (endX, endY),
-			(0, 255, 0), 2)
-        y = startY - 10 if startY - 10 > 10 else startY + 10
-        cv2.putText(clone, label, (startX, y),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
-	# show the output after apply non-maxima suppression
-    cv2.imshow("After", clone)
-    cv2.waitKey(0)
+FV.ProbarRed()
