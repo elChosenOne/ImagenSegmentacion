@@ -61,21 +61,21 @@ def GraficasPrediccion(historial):
     plt.title('Perdida de entrenamiento y pruebas')
     plt.show()
     
-def PrintResponse(val):
+def PrintResponse(val, res):
     if val == 0:
-        print("Cargador")
+        print("Cargador ", float(res[val])*100, "%")
     elif val == 1:
-        print("Control remoto")
+        print("Control remoto ", float(res[val])*100, "%")
     elif val == 2:
-        print("Lana")
+        print("Lana ", float(res[val])*100, "%")
     elif val == 3:
-        print("Maletin")
+        print("Maletin ", float(res[val])*100, "%")
     elif val == 4:
-        print("Mamadera")
+        print("Mamadera ", float(res[val])*100, "%")
     elif val == 5:
-        print("Mochila")
+        print("Mochila ", float(res[val])*100, "%")
 
-def ProbarRed():
+def CargarRed():
     module_handle = "https://tfhub.dev/google/imagenet/resnet_v1_50/feature_vector/5"
 
     m = tf.keras.Sequential([
@@ -95,17 +95,16 @@ def ProbarRed():
     checkpoint_dir = os.path.dirname(checkpoint_path)
 
     m.load_weights(checkpoint_path)
+    
+    return m
 
-    for i in range(8):
-        img = Image.open(".\Imagenes\\"+str(i+1)+".jpg")
-        img = np.array(img).astype(float)/255
-
-        img = cv2.resize(img, (224, 224))
-
-        result = m(img.reshape(-1, 224, 224, 3))
-
-        PrintResponse(np.argmax(result[0], axis = -1))
-
+def ProbarRed(m, img):
+    img = Image.fromarray(img)
+    img = np.array(img).astype(float)/255
+    img = cv2.resize(img, (224, 224))
+    result = m(img.reshape(-1, 224, 224, 3))
+    return [np.argmax(result[0], axis = -1), result[0]]
+    PrintResponse(np.argmax(result[0], axis = -1), result[0])
 
 def EntrenarRed():
     datagen = ImageDataGenerator( rescale=1. / 255,
