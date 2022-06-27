@@ -28,7 +28,13 @@ def selective_search(image, method="fast"):
     
 print("[INFO] loading ResNet...")
 model = ResNet50(weights="imagenet")
+<<<<<<< HEAD
 image = cv2.imread(r'.\Imagenes\IMG2I.jpg')
+=======
+# load the input image from disk and grab its dimensions
+image = cv2.imread(r'.\Imagenes\IMG2I.jpg')
+#image = Image.open(".\Imagenes\\IMG2I.jpg")
+>>>>>>> 18c744e991a7fe490a56ee74f3b8d86e95ae1f8c
 
 
 (H, W) = image.shape[:2]
