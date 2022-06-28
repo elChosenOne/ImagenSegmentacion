@@ -26,15 +26,8 @@ def selective_search(image, method="fast"):
     print("Tiempo = ", t2-t1)
     return rects
     
-print("[INFO] loading ResNet...")
 model = ResNet50(weights="imagenet")
-<<<<<<< HEAD
 image = cv2.imread(r'.\Imagenes\IMG2I.jpg')
-=======
-# load the input image from disk and grab its dimensions
-image = cv2.imread(r'.\Imagenes\IMG2I.jpg')
-#image = Image.open(".\Imagenes\\IMG2I.jpg")
->>>>>>> 18c744e991a7fe490a56ee74f3b8d86e95ae1f8c
 
 
 (H, W) = image.shape[:2]
@@ -59,7 +52,7 @@ print("[INFO] performing selective search with fast method...")
 rects = selective_search(image, method="fast")
 print("[INFO] {} regions found by selective search".format(len(rects)))
 
-resp = ["Cargador ", "Control remoto ", "Lana ", "Maletin ", "Mamadera ", "Mochila "]
+resp = ["Cargador ", "Control remoto ", "Lana ", "Maletin ", "Mamadera ", "Mochila ", "Nada "]
 
 m = FV.CargarRed()
 
@@ -74,7 +67,7 @@ for (x, y, w, h) in rects:
     roi = cv2.resize(roi, (224, 224))
     r = FV.ProbarRed(m, roi)
     
-    if float(r[1][r[0]])*100 > 90:
+    if r[1][r[0]]*100 > 1:
         text = resp[r[0]]+str(float(r[1][r[0]])*100)+"%"
         img = image[y:y + h, x:x + w]
         img = cv2.resize(img, (224, 224))
